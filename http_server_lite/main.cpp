@@ -140,9 +140,9 @@ int main()
 				}
 
 				std::shared_ptr<asio2::https_server> https_server = std::make_shared<asio2::https_server>();
-				start_server(https_server, host, port, path, index);
 				https_server->set_cert_file("", cert_file, key_file, "");
 				https_server->set_dh_file(cert_file);
+				start_server(https_server, host, port, path, index);
 				https_servers.emplace_back(https_server);
 			}
 			else
