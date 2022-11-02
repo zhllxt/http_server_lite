@@ -17,6 +17,7 @@
 /http_server_lite/*.cmake
 /http_server_lite/CMakeCache.txt
 /http_server_lite/*.sln
+/http_server_lite/[Mm]akefile
 
 /bin/x64/*.pdb
 /bin/x86/*.pdb

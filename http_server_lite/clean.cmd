@@ -6,6 +6,8 @@ del /f /s /q cmake_install.cmake
 del /f /s /q CMakeCache.txt
 del /f /s /q *.vsp
 del /f /s /q *.psess
+del /f /s /q Makefile
+del /f /s /q makefile
 
 rmdir /s /q .vs
 rmdir /s /q CMakeFiles
