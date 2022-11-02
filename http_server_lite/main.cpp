@@ -169,5 +169,7 @@ int main()
 	// must call iopool.stop() before exit.
 	iopool.stop();
 
+	fmt::print("progress exited.\n");
+
 	return 0;
 }
