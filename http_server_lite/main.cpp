@@ -37,11 +37,16 @@ int main()
 		return 0;
 	}
 
+	asio2::iopool iopool;
+
+	// iopool must start first, othwise the server.start will blocked forever.
+	iopool.start();
+
 	std::vector<std::shared_ptr<asio2::http_server >> http_servers;
 	std::vector<std::shared_ptr<asio2::https_server>> https_servers;
 
 	auto start_server = [](auto server,
-		std::string host, std::uint16_t port, std::string path, std::string index)
+		std::string host, std::uint16_t port, std::string path, std::string index) mutable
 	{
 		server->set_root_directory(path);
 
@@ -119,7 +124,8 @@ int main()
 
 			if /**/ (asio2::iequals(protocol, "http"))
 			{
-				std::shared_ptr<asio2::http_server> http_server = std::make_shared<asio2::http_server>();
+				std::shared_ptr<asio2::http_server> http_server =
+					std::make_shared<asio2::http_server>(iopool.get());
 				start_server(http_server, host, port, path, index);
 				http_servers.emplace_back(http_server);
 			}
@@ -139,7 +145,8 @@ int main()
 					continue;
 				}
 
-				std::shared_ptr<asio2::https_server> https_server = std::make_shared<asio2::https_server>();
+				std::shared_ptr<asio2::https_server> https_server =
+					std::make_shared<asio2::https_server>(asio::ssl::context::sslv23, iopool.get());
 				https_server->set_cert_file("", cert_file, key_file, "");
 				https_server->set_dh_file(cert_file);
 				start_server(https_server, host, port, path, index);
@@ -157,16 +164,10 @@ int main()
 		}
 	}
 
-	while (std::getchar() != '\n');
+	iopool.wait_signal(SIGINT, SIGTERM);
 
-	for (auto& server : http_servers)
-	{
-		server->stop();
-	}
-	for (auto& server : https_servers)
-	{
-		server->stop();
-	}
+	// must call iopool.stop() before exit.
+	iopool.stop();
 
 	return 0;
 }
