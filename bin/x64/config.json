@@ -1,0 +1,25 @@
+[
+  {
+    "protocol": "http",
+    "host": "0.0.0.0",
+    "port": 80,
+    "path": "C:/inetpub/wwwroot",
+    "index": "index.html"
+  },
+  {
+    "protocol": "https",
+    "host": "0.0.0.0",
+    "port": 443,
+    "path": "D:/website/main",
+    "index": "index.html",
+    "cert_file": "D:/website/main/cert/www.xxx.com.pem",
+    "key_file": "D:/website/main/cert/www.xxx.com.key"
+  },
+  {
+    "protocol": "http",
+    "host": "0.0.0.0",
+    "port": 8080,
+    "path": "D:/website/work",
+    "index": "index.html"
+  }
+]
