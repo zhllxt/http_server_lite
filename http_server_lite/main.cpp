@@ -1,6 +1,4 @@
-#ifndef ASIO2_ENABLE_SSL
 #define ASIO2_ENABLE_SSL
-#endif
 
 #include <asio2/http/http_server.hpp>
 #include <asio2/http/https_server.hpp>
@@ -42,23 +40,25 @@ int main()
 	// iopool must start first, othwise the server.start will blocked forever.
 	iopool.start();
 
-	std::vector<std::shared_ptr<asio2::http_server >> http_servers;
-	std::vector<std::shared_ptr<asio2::https_server>> https_servers;
+	int server_count = 0;
 
-	auto start_server = [](auto server,
+	auto start_server = [&server_count](auto server,
 		std::string host, std::uint16_t port, std::string path, std::string index) mutable
 	{
 		server->set_root_directory(path);
 
 		// can't capture the "server" into the lambda, it will case the shared_ptr circular reference
-		server->bind_start([host, port, pserver = server.get()]()
+		server->bind_start([host, port, &server_count, pserver = server.get()]() mutable
 		{
 			if (asio2::get_last_error())
 				fmt::print("start http server failure : {} {} {}\n",
 					host, port, asio2::last_error_msg());
 			else
+			{
+				server_count++;
 				fmt::print("start http server success : {} {}\n",
 					pserver->listen_address(), pserver->listen_port());
+			}
 		}).bind_stop([host, port]()
 		{
 			fmt::print("stop http server success : {} {} {}\n",
@@ -78,14 +78,7 @@ int main()
 			rep.fill_file(req.target());
 		});
 
-		server->bind_not_found([](http::web_request& req, http::web_response& rep)
-		{
-			asio2::ignore_unused(req);
-
-			rep.fill_page(http::status::not_found);
-		});
-
-		server->start(host, port);
+		return server->start(host, port);
 	};
 
 	for (auto& site : cfg)
@@ -124,10 +117,8 @@ int main()
 
 			if /**/ (asio2::iequals(protocol, "http"))
 			{
-				std::shared_ptr<asio2::http_server> http_server =
-					std::make_shared<asio2::http_server>(iopool.get());
-				start_server(http_server, host, port, path, index);
-				http_servers.emplace_back(http_server);
+				std::shared_ptr<asio2::http_server> server = std::make_shared<asio2::http_server>(iopool);
+				start_server(server, host, port, path, index);
 			}
 			else if (asio2::iequals(protocol, "https"))
 			{
@@ -145,26 +136,41 @@ int main()
 					continue;
 				}
 
-				std::shared_ptr<asio2::https_server> https_server =
-					std::make_shared<asio2::https_server>(asio::ssl::context::sslv23, iopool.get());
-				https_server->set_cert_file("", cert_file, key_file, "");
-				https_server->set_dh_file(cert_file);
-				start_server(https_server, host, port, path, index);
-				https_servers.emplace_back(https_server);
+				std::shared_ptr<asio2::https_server> server =
+					std::make_shared<asio2::https_server>(asio::ssl::context::sslv23, iopool);
+				try
+				{
+					server->use_certificate_chain_file(cert_file);
+					server->use_private_key_file(key_file, asio::ssl::context::pem);
+					server->use_tmp_dh_file(cert_file);
+				}
+				catch (asio::system_error const& e)
+				{
+					fmt::print("start http server failure : {} {}, load ssl certificate file failed : {}\n",
+						host, port, e.what());
+					continue;
+				}
+				start_server(server, host, port, path, index);
 			}
 			else
 			{
-				fmt::print("invalid protocol: {}\n", protocol);
+				fmt::print("start http server failure : {} {}, invalid protocol: {}\n", host, port, protocol);
 			}
 		}
 		catch (json::exception const& e)
 		{
 			fmt::print("read the config file 'config.json' failed: {}\n", e.what());
-			return 0;
 		}
 	}
 
-	iopool.wait_signal(SIGINT, SIGTERM);
+	if (server_count == 0)
+	{
+		fmt::print("No available http server was found in the config file.\n");
+	}
+	else
+	{
+		iopool.wait_signal(SIGINT, SIGTERM);
+	}
 
 	// must call iopool.stop() before exit.
 	iopool.stop();
