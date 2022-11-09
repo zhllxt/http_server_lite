@@ -71,12 +71,12 @@ int main()
 			asio2::ignore_unused(req, rep);
 
 			rep.fill_file(index);
-		});
+		}, http::enable_cache);
 
 		server->bind("*", [](http::web_request& req, http::web_response& rep)
 		{
 			rep.fill_file(req.target());
-		});
+		}, http::enable_cache);
 
 		return server->start(host, port);
 	};
