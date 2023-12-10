@@ -111,7 +111,7 @@ int main()
 
 			if (index.empty())
 			{
-				index = "index.html";
+				index = "/index.html";
 				fmt::print("The index is empty, will use {} to instead.\n", index);
 			}
 
@@ -137,12 +137,12 @@ int main()
 				}
 
 				std::shared_ptr<asio2::https_server> server =
-					std::make_shared<asio2::https_server>(asio::ssl::context::sslv23, iopool);
+					std::make_shared<asio2::https_server>(asio::ssl::context::tlsv12, iopool);
 				try
 				{
 					server->use_certificate_chain_file(cert_file);
 					server->use_private_key_file(key_file, asio::ssl::context::pem);
-					server->use_tmp_dh_file(cert_file);
+					//server->use_tmp_dh_file(cert_file);
 				}
 				catch (asio::system_error const& e)
 				{

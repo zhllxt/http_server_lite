@@ -21,3 +21,5 @@
 
 /bin/x64/*.pdb
 /bin/x86/*.pdb
+/bin/x64/http_server_lite*
+/bin/x86/http_server_lite*
